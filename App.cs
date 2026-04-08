@@ -34,7 +34,7 @@ namespace Smart_BIMs
 
                 PushButtonData aboutBtnData = new PushButtonData(
                     "cmdAbout",
-                    "About\nAcademyInnov",
+                    "About",
                     thisAssemblyPath,
                     "Smart_BIMs.Commands.AboutCommand"
                 );
