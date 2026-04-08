@@ -67,9 +67,9 @@ namespace Smart_BIMs.Commands
                             for (int r = 2; r <= maxRow; r++)
                             {
                                 string idStr = ws.Cell(r, 1).GetString();
-                                if (int.TryParse(idStr, out int elementIdInt))
+                                if (long.TryParse(idStr, out long elementIdLong))
                                 {
-                                    ElementId id = new ElementId(elementIdInt);
+                                    ElementId id = new ElementId(elementIdLong);
                                     Element el = doc.GetElement(id);
                                     if (el != null)
                                     {
@@ -80,7 +80,12 @@ namespace Smart_BIMs.Commands
                                             ScheduleField field = kvp.Value;
                                             string val = ws.Cell(r, col).GetString();
 
-                                            Parameter p = el.get_Parameter(field.ParameterId);
+                                            Parameter p = null;
+                                            foreach (Parameter param in el.Parameters)
+                                            {
+                                                if (param.Id == field.ParameterId) { p = param; break; }
+                                            }
+
                                             if (p != null && !p.IsReadOnly)
                                             {
                                                 try { 

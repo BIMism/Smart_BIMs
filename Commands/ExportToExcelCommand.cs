@@ -63,10 +63,15 @@ namespace Smart_BIMs.Commands
                         int row = 2;
                         foreach (Element el in collectedElements)
                         {
-                            ws.Cell(row, 1).Value = el.Id.IntegerValue;
+                            ws.Cell(row, 1).Value = (double)el.Id.Value;
                             for (int i = 0; i < fields.Count; i++)
                             {
-                                Parameter p = el.get_Parameter(fields[i].ParameterId);
+                                Parameter p = null;
+                                foreach(Parameter param in el.Parameters)
+                                {
+                                    if (param.Id == fields[i].ParameterId) { p = param; break; }
+                                }
+                                
                                 if (p != null)
                                 {
                                     ws.Cell(row, i + 2).Value = p.AsValueString() ?? p.AsString() ?? "";
