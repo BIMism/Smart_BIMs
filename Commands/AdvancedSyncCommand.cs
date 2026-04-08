@@ -117,7 +117,7 @@ namespace Smart_BIMs.Commands
 
             // 1. Title Row
             ws.Cells[1, 1].Value2 = schedule.Name;
-            dynamic titleRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, existingCols]];
+            dynamic titleRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, existingCols + 3]];
             titleRange.Merge();
             titleRange.Font.Size = 16;
             titleRange.Font.Bold = true;
@@ -274,8 +274,8 @@ namespace Smart_BIMs.Commands
             
             // Allow Dropdown Additions
             int maxR = existingRows < 2 ? 100 : existingRows;
-            dynamic valRange = ws.Range[ws.Cells[2, existingCols + 1], ws.Cells[2, existingCols + 10]];
-            dynamic newCellDataRange = ws.Range[ws.Cells[3, existingCols + 1], ws.Cells[2 + maxR, existingCols + 10]];
+            dynamic valRange = ws.Range[ws.Cells[2, existingCols + 1], ws.Cells[2, existingCols + 3]];
+            dynamic newCellDataRange = ws.Range[ws.Cells[3, existingCols + 1], ws.Cells[2 + maxR, existingCols + 3]];
             
             valRange.Locked = false;
             newCellDataRange.Locked = false;
@@ -284,6 +284,11 @@ namespace Smart_BIMs.Commands
             {
                 valRange.Validation.Delete();
                 valRange.Validation.Add(Type: 3 /*xlValidateList*/, AlertStyle: 1, Operator: 1, Formula1: $"=SmartBIM_Dictionary!$A$1:$A${Math.Max(1, paramNames.Count)}");
+                valRange.Value2 = "[ Add Parameter ]";
+                valRange.Font.Italic = true;
+                valRange.Font.ColorIndex = 16; // Dark grey font
+                valRange.Interior.ColorIndex = 20; // Light Blue
+                valRange.Borders.LineStyle = 1;
                 
                 int colRef = existingCols + 1;
                 string colStr = "";
@@ -310,7 +315,8 @@ namespace Smart_BIMs.Commands
             // 5. Fonts (Standard uniform mapping)
             if (ui.chkSyncFonts.IsChecked == true)
             {
-                fullGrid.Font.Name = "Arial"; // Safe default corresponding to basic Revit schedule font
+                dynamic overallGrid = ws.Range[ws.Cells[2, 1], ws.Cells[2 + existingRows, existingCols + 3]];
+                overallGrid.Font.Name = "Arial"; // Safe default corresponding to basic Revit schedule font
             }
 
             // 6. Freeze Panes
