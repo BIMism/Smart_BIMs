@@ -53,8 +53,16 @@ namespace Smart_BIMs.Commands
 
                 int updatedElements = 0;
 
-                dynamic usedRange = ws.UsedRange;
-                object value2 = usedRange.Value2;
+                int maxExpectedRows = collectedElements.Count + 2000;
+                int totalRows = ws.UsedRange.Rows.Count;
+                int totalCols = ws.UsedRange.Columns.Count;
+
+                // Prevent massive Excel COM dumps that freeze memory
+                if (totalRows > maxExpectedRows) totalRows = maxExpectedRows;
+                if (totalCols > 256) totalCols = 256;
+
+                dynamic safeRange = ws.Range[ws.Cells[1, 1], ws.Cells[totalRows, totalCols]];
+                object value2 = safeRange.Value2;
 
                 if (value2 is object[,] values && values.GetLength(0) > 1)
                 {
