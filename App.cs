@@ -89,13 +89,32 @@ namespace Smart_BIMs
         {
             try
             {
-                string assemblyPath = Assembly.GetExecutingAssembly().Location;
-                string dir = Path.GetDirectoryName(assemblyPath);
-                string imgPath = Path.Combine(dir, "Resources", resourceName);
-                
-                if (File.Exists(imgPath))
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                string[] names = assembly.GetManifestResourceNames();
+                string match = null;
+                foreach (string name in names)
                 {
-                    return new BitmapImage(new Uri(imgPath, UriKind.Absolute));
+                    if (name.EndsWith(resourceName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        match = name;
+                        break;
+                    }
+                }
+                
+                if (match != null)
+                {
+                    using (Stream stream = assembly.GetManifestResourceStream(match))
+                    {
+                        if (stream != null)
+                        {
+                            BitmapImage image = new BitmapImage();
+                            image.BeginInit();
+                            image.StreamSource = stream;
+                            image.CacheOption = BitmapCacheOption.OnLoad;
+                            image.EndInit();
+                            return image;
+                        }
+                    }
                 }
                 return null;
             }
