@@ -63,6 +63,16 @@ namespace Smart_BIMs
                 importBtnData.ToolTip = "Pull Excel changes back into the Revit Schedule Live.";
                 importBtnData.LargeImage = GetImageFromResource("import_icon.png");
 
+                // Live Field Injection Button
+                PushButtonData addFieldData = new PushButtonData(
+                    "cmdAddField",
+                    "Add Field\nLive",
+                    thisAssemblyPath,
+                    "Smart_BIMs.Commands.AddFieldCommand"
+                );
+                addFieldData.ToolTip = "Instantly push a new Field to the Schedule and visually update the active Excel Spreadsheet.";
+                addFieldData.LargeImage = GetImageFromResource("add_field_icon.png");
+
                 // Advanced Manager Button
                 PushButtonData managerBtnData = new PushButtonData(
                     "cmdAdvancedManager",
@@ -78,6 +88,7 @@ namespace Smart_BIMs
                 panelSchedules.AddSeparator();
                 panelSchedules.AddItem(exportBtnData);
                 panelSchedules.AddItem(importBtnData);
+                panelSchedules.AddItem(addFieldData);
 
                 // Add to explicit manager panel
                 panelManager.AddItem(managerBtnData);

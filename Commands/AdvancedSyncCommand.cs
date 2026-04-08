@@ -104,6 +104,61 @@ namespace Smart_BIMs.Commands
             }
         }
 
+        public void ExecuteSilentlySync(ExternalCommandData commandData)
+        {
+            UIDocument uidoc = commandData.Application.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            ViewSchedule schedule = doc.ActiveView as ViewSchedule;
+            if (schedule == null) return;
+
+            dynamic excelApp = null;
+            try { excelApp = COMHelper.GetActiveObject("Excel.Application"); } catch { return; } 
+            
+            if (excelApp.Workbooks.Count == 0) { System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp); return; }
+            dynamic wb = excelApp.ActiveWorkbook;
+            dynamic ws = wb.ActiveSheet;
+            
+            List<ScheduleField> fields = new List<ScheduleField>();
+            for (int i = 0; i < schedule.Definition.GetFieldCount(); i++) fields.Add(schedule.Definition.GetField(i));
+
+            SyncFromExcelLive(doc, schedule, fields, ws);
+            
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);
+        }
+
+        public void ExecuteSilentlyExport(ExternalCommandData commandData)
+        {
+            UIDocument uidoc = commandData.Application.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            ViewSchedule schedule = doc.ActiveView as ViewSchedule;
+            if (schedule == null) return;
+
+            List<ScheduleField> fields = new List<ScheduleField>();
+            for (int i = 0; i < schedule.Definition.GetFieldCount(); i++) fields.Add(schedule.Definition.GetField(i));
+
+            ExcelManagerWindow ui = new ExcelManagerWindow(doc, schedule);
+            ui.chkSyncFonts.IsChecked = true;
+            ui.chkSyncShading.IsChecked = true;
+            ui.chkSyncBorders.IsChecked = true;
+            ui.chkFreezeHeader.IsChecked = true;
+            ui.chkStripeRows.IsChecked = false;
+
+            dynamic excelApp = null;
+            bool isNew = false;
+            try { excelApp = COMHelper.GetActiveObject("Excel.Application"); }
+            catch { Type t = Type.GetTypeFromProgID("Excel.Application"); excelApp = Activator.CreateInstance(t); isNew = true; }
+
+            excelApp.Visible = true;
+            dynamic wb = null;
+            if (isNew || excelApp.Workbooks.Count == 0) { wb = excelApp.Workbooks.Add(System.Reflection.Missing.Value); isNew = true; }
+            else { wb = excelApp.ActiveWorkbook; }
+
+            dynamic ws = wb.ActiveSheet;
+            ExportToExcelLive(doc, schedule, fields, ui, excelApp, wb, ws, isNew);
+        }
+
         private void ExportToExcelLive(Document doc, ViewSchedule schedule, List<ScheduleField> fields, ExcelManagerWindow ui, dynamic excelApp, dynamic wb, dynamic ws, bool isNew)
         {
             try { ws.Unprotect(); } catch { }

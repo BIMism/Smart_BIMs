@@ -13,6 +13,7 @@
     <EmbeddedResource Include="Resources\logo.png" />
     <EmbeddedResource Include="Resources\export_icon.png" />
     <EmbeddedResource Include="Resources\import_icon.png" />
+    <EmbeddedResource Include="Resources\add_field_icon.png" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
