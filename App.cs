@@ -44,22 +44,22 @@ namespace Smart_BIMs
 
                 // Export to Excel Button
                 PushButtonData exportBtnData = new PushButtonData(
-                    "cmdExportExcel",
-                    "Export to\nExcel",
+                    "cmdSyncToExcel",
+                    "Sync to\nExcel",
                     thisAssemblyPath,
-                    "Smart_BIMs.Commands.ExportToExcelCommand"
+                    "Smart_BIMs.Commands.SyncToExcelCommand"
                 );
-                exportBtnData.ToolTip = "Export active schedule to Excel for bulk editing.";
+                exportBtnData.ToolTip = "Push Revit Schedule changes to the Live Excel sheet.";
                 exportBtnData.LargeImage = GetImageFromResource("export_icon.png");
 
                 // Sync from Excel Button
                 PushButtonData importBtnData = new PushButtonData(
-                    "cmdImportExcel",
+                    "cmdSyncFromExcel",
                     "Sync from\nExcel",
                     thisAssemblyPath,
                     "Smart_BIMs.Commands.SyncFromExcelCommand"
                 );
-                importBtnData.ToolTip = "Read data from an Excel file to sync back to Revit.";
+                importBtnData.ToolTip = "Pull Excel changes back into the Revit Schedule Live.";
                 importBtnData.LargeImage = GetImageFromResource("import_icon.png");
 
                 // Add to panels
