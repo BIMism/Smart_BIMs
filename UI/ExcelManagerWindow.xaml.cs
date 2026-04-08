@@ -82,19 +82,11 @@ namespace Smart_BIMs.UI
                     Definition existingDef = grp.Definitions.get_Item(pName);
                     if (existingDef == null)
                     {
-#if NET8_0_OR_GREATER
                         Autodesk.Revit.DB.ForgeTypeId dataType = Autodesk.Revit.DB.SpecTypeId.String.Text;
                         if (pTypeIdx == 1) dataType = Autodesk.Revit.DB.SpecTypeId.Number;
                         else if (pTypeIdx == 2) dataType = Autodesk.Revit.DB.SpecTypeId.Int.Integer;
                         else if (pTypeIdx == 3) dataType = Autodesk.Revit.DB.SpecTypeId.Length;
                         Autodesk.Revit.DB.ExternalDefinitionCreationOptions opt = new Autodesk.Revit.DB.ExternalDefinitionCreationOptions(pName, dataType);
-#else
-                        Autodesk.Revit.DB.ParameterType dataType = Autodesk.Revit.DB.ParameterType.Text;
-                        if (pTypeIdx == 1) dataType = Autodesk.Revit.DB.ParameterType.Number;
-                        else if (pTypeIdx == 2) dataType = Autodesk.Revit.DB.ParameterType.Integer;
-                        else if (pTypeIdx == 3) dataType = Autodesk.Revit.DB.ParameterType.Length;
-                        Autodesk.Revit.DB.ExternalDefinitionCreationOptions opt = new Autodesk.Revit.DB.ExternalDefinitionCreationOptions(pName, dataType);
-#endif
                         existingDef = grp.Definitions.Create(opt);
                     }
 
@@ -111,13 +103,9 @@ namespace Smart_BIMs.UI
 
                     if (catSet.IsEmpty) { MessageBox.Show("Could not resolve categories for the schedule."); trans.RollBack(); return; }
 
-#if NET8_0_OR_GREATER
                     InstanceBinding binding = app.Create.NewInstanceBinding(catSet);
                     _doc.ParameterBindings.Insert(existingDef, binding, Autodesk.Revit.DB.GroupTypeId.Data);
-#else
-                    InstanceBinding binding = app.Create.NewInstanceBinding(catSet);
-                    _doc.ParameterBindings.Insert(existingDef, binding, Autodesk.Revit.DB.BuiltInParameterGroup.PG_DATA);
-#endif
+                    
                     trans.Commit();
                 }
 
