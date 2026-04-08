@@ -275,6 +275,21 @@ namespace Smart_BIMs.Commands
             dynamic dictWs = null;
             try { dictWs = wb.Worksheets["SmartBIM_Dictionary"]; }
             catch { dictWs = wb.Worksheets.Add(After: ws); dictWs.Name = "SmartBIM_Dictionary"; dictWs.Visible = 2; /*xlSheetVeryHidden*/ }
+            // Pre-populate global Enum values for Type parameters
+            HashSet<ElementId> activeCategories = new HashSet<ElementId>();
+            foreach (Element e in collectedElements) { if (e.Category != null) activeCategories.Add(e.Category.Id); }
+
+            for (int c = 0; c < fields.Count; c++)
+            {
+                if (fields[c].ParameterId.IntegerValue == (int)BuiltInParameter.ELEM_TYPE_PARAM || fields[c].ColumnHeading == "Type")
+                {
+                    foreach (ElementId catId in activeCategories)
+                    {
+                        var types = new FilteredElementCollector(doc).OfCategoryId(catId).WhereElementIsElementType().ToElements();
+                        foreach (var t in types) columnUniqueValues[c].Add(t.Name);
+                    }
+                }
+            }
             
             if (paramNames.Count > 0)
             {
@@ -490,7 +505,23 @@ namespace Smart_BIMs.Commands
                                                     if (appliedTypeParams.Contains(sig)) continue;
                                                     appliedTypeParams.Add(sig);
                                                 }
-                                                try { p.Set(sVal); updated = true; } catch { }
+                                                
+                                                if (p.StorageType == StorageType.ElementId)
+                                                {
+                                                    if (p.Id.IntegerValue == (int)BuiltInParameter.ELEM_TYPE_PARAM || matchedField.ColumnHeading == "Type")
+                                                    {
+                                                        var types = new FilteredElementCollector(doc).OfCategoryId(el.Category.Id).WhereElementIsElementType().ToElements();
+                                                        Element match = types.FirstOrDefault(t => t.Name == sVal);
+                                                        if (match != null) { try { el.ChangeTypeId(match.Id); updated = true; } catch { } }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    bool setSuccess = false;
+                                                    try { setSuccess = p.SetValueString(sVal); } catch { }
+                                                    if (!setSuccess) { try { p.Set(sVal); } catch { } }
+                                                    updated = true;
+                                                }
                                             }
                                         }
                                     }
