@@ -5,7 +5,7 @@
     <Assembly>Smart_BIMs\Smart_BIMs.dll</Assembly>
     <AddInId>A9B4C836-CF82-4114-874D-8422A4E0B6E2</AddInId>
     <FullClassName>Smart_BIMs.App</FullClassName>
-    <VendorId>SmartBIMs</VendorId>
-    <VendorDescription>Smart BIMs Plugin</VendorDescription>
+    <VendorId>AsankaD</VendorId>
+    <VendorDescription>Asanka Dharmarathna - https://academyinnov.com/</VendorDescription>
   </AddIn>
 </RevitAddIns>

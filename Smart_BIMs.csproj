@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- Multi-targeting for Revit 2024 (.NET 4.8) and 2025+ (.NET 8.0) -->
     <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
     <UseWPF>true</UseWPF>
     <PlatformTarget>x64</PlatformTarget>
@@ -8,14 +7,17 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <!-- Revit 2024 API references via NuGet (no local installation required) -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\schedule_icon.png" />
+    <EmbeddedResource Include="Resources\about_icon.png" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2024.0.0" PrivateAssets="All" />
     <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2024.0.0" PrivateAssets="All" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
-  <!-- Revit 2025, 2026, 2027 API references via NuGet (.NET 8.0) -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2025.0.0" PrivateAssets="All" />
     <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2025.0.0" PrivateAssets="All" />
