@@ -67,7 +67,15 @@ namespace Smart_BIMs
         {
             try
             {
-                return new BitmapImage(new Uri("pack://application:,,,/Smart_BIMs;component/Resources/" + resourceName));
+                string assemblyPath = Assembly.GetExecutingAssembly().Location;
+                string dir = Path.GetDirectoryName(assemblyPath);
+                string imgPath = Path.Combine(dir, "Resources", resourceName);
+                
+                if (File.Exists(imgPath))
+                {
+                    return new BitmapImage(new Uri(imgPath, UriKind.Absolute));
+                }
+                return null;
             }
             catch
             {
