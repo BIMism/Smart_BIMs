@@ -8,8 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\schedule_icon.png" />
-    <EmbeddedResource Include="Resources\about_icon.png" />
+    <Resource Include="Resources\schedule_icon.png" />
+    <Resource Include="Resources\about_icon.png" />
+    <Resource Include="Resources\logo.png" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">

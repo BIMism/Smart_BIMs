@@ -17,8 +17,9 @@ namespace Smart_BIMs
                 string tabName = "Smart BIMs";
                 application.CreateRibbonTab(tabName);
 
-                // 2. Create Panel
-                RibbonPanel panel = application.CreateRibbonPanel(tabName, "Schedules");
+                // 2. Create Panels
+                RibbonPanel panelSchedules = application.CreateRibbonPanel(tabName, "Schedules");
+                RibbonPanel panelAbout = application.CreateRibbonPanel(tabName, "About");
 
                 // 3. Setup commands
                 string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
@@ -41,9 +42,9 @@ namespace Smart_BIMs
                 aboutBtnData.ToolTip = "Learn more about Smart BIMs at academyinnov.com";
                 aboutBtnData.LargeImage = GetImageFromResource("about_icon.png");
 
-                // Add to panel
-                panel.AddItem(scheduleBtnData);
-                panel.AddItem(aboutBtnData);
+                // Add to panels
+                panelSchedules.AddItem(scheduleBtnData);
+                panelAbout.AddItem(aboutBtnData);
 
                 // Optional: Check for updates silently
                 GithubUpdateChecker.CheckForUpdatesAsync("BIMism", "Smart_BIMs");
@@ -66,17 +67,7 @@ namespace Smart_BIMs
         {
             try
             {
-                Assembly assembly = Assembly.GetExecutingAssembly();
-                using (Stream stream = assembly.GetManifestResourceStream("Smart_BIMs.Resources." + resourceName))
-                {
-                    if (stream == null) return null;
-                    BitmapImage image = new BitmapImage();
-                    image.BeginInit();
-                    image.StreamSource = stream;
-                    image.CacheOption = BitmapCacheOption.OnLoad;
-                    image.EndInit();
-                    return image;
-                }
+                return new BitmapImage(new Uri("pack://application:,,,/Smart_BIMs;component/Resources/" + resourceName));
             }
             catch
             {
