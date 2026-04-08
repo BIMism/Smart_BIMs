@@ -19,6 +19,7 @@ namespace Smart_BIMs
 
                 // 2. Create Panels
                 RibbonPanel panelSchedules = application.CreateRibbonPanel(tabName, "Schedules");
+                RibbonPanel panelManager = application.CreateRibbonPanel(tabName, "Excel Manager");
                 RibbonPanel panelAbout = application.CreateRibbonPanel(tabName, "About");
 
                 // 3. Setup commands
@@ -72,12 +73,15 @@ namespace Smart_BIMs
                 managerBtnData.ToolTip = "Advanced options to specify columns and sync graphics & appearances.";
                 managerBtnData.LargeImage = GetImageFromResource("schedule_icon.png"); // Reusing schedule icon
 
-                // Add to panels
+                // Add to regular panels
                 panelSchedules.AddItem(scheduleBtnData);
                 panelSchedules.AddSeparator();
                 panelSchedules.AddItem(exportBtnData);
                 panelSchedules.AddItem(importBtnData);
-                panelSchedules.AddItem(managerBtnData);
+
+                // Add to explicit manager panel
+                panelManager.AddItem(managerBtnData);
+
                 panelAbout.AddItem(aboutBtnData);
 
                 // Optional: Check for updates silently
