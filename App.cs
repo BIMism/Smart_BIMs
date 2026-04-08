@@ -42,8 +42,30 @@ namespace Smart_BIMs
                 aboutBtnData.ToolTip = "Learn more about Smart BIMs at academyinnov.com";
                 aboutBtnData.LargeImage = GetImageFromResource("about_icon.png");
 
+                // Export to Excel Button
+                PushButtonData exportBtnData = new PushButtonData(
+                    "cmdExportExcel",
+                    "Export to\nExcel",
+                    thisAssemblyPath,
+                    "Smart_BIMs.Commands.ExportToExcelCommand"
+                );
+                exportBtnData.ToolTip = "Export active schedule to Excel for bulk editing.";
+                exportBtnData.LargeImage = GetImageFromResource("export_icon.png");
+
+                // Sync from Excel Button
+                PushButtonData importBtnData = new PushButtonData(
+                    "cmdImportExcel",
+                    "Sync from\nExcel",
+                    thisAssemblyPath,
+                    "Smart_BIMs.Commands.SyncFromExcelCommand"
+                );
+                importBtnData.ToolTip = "Read data from an Excel file to sync back to Revit.";
+                importBtnData.LargeImage = GetImageFromResource("import_icon.png");
+
                 // Add to panels
                 panelSchedules.AddItem(scheduleBtnData);
+                panelSchedules.AddItem(exportBtnData);
+                panelSchedules.AddItem(importBtnData);
                 panelAbout.AddItem(aboutBtnData);
 
                 // Optional: Check for updates silently
