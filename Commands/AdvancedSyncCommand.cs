@@ -272,6 +272,45 @@ namespace Smart_BIMs.Commands
                 }
             }
 
+            // Export All Available Parameters to Hidden Sheet for Validation Dictionary
+            IList<SchedulableField> allSchedulable = schedule.Definition.GetSchedulableFields();
+            List<string> paramNames = new List<string>();
+            foreach(var sf in allSchedulable)
+            {
+                string pName = sf.GetName(doc).Replace("'", "").Replace("=", "");
+                if (!string.IsNullOrEmpty(pName) && !paramNames.Contains(pName)) paramNames.Add(pName);
+            }
+
+            dynamic dictWs = null;
+            try { dictWs = wb.Worksheets["SmartBIM_Dictionary"]; }
+            catch { dictWs = wb.Worksheets.Add(After: ws); dictWs.Name = "SmartBIM_Dictionary"; dictWs.Visible = 2; /*xlSheetVeryHidden*/ }
+            
+            if (paramNames.Count > 0)
+            {
+                object[,] dictData = new object[paramNames.Count, 1];
+                for(int i=0; i<paramNames.Count; i++) dictData[i,0] = paramNames[i];
+                dynamic dictRange = dictWs.Range[dictWs.Cells[1,1], dictWs.Cells[paramNames.Count, 1]];
+                dictRange.Value2 = dictData;
+            }
+
+            ws.Activate(); // Ensure main sheet is active before validation
+            
+            // Allow Dropdown Additions
+            dynamic valRange = ws.Range[ws.Cells[1, existingCols + 1], ws.Cells[1, existingCols + 10]];
+            dynamic newCellDataRange = ws.Range[ws.Cells[2, existingCols + 1], ws.Cells[existingRows, existingCols + 10]];
+            
+            valRange.Locked = false;
+            newCellDataRange.Locked = false;
+            
+            try
+            {
+                valRange.Validation.Delete();
+                valRange.Validation.Add(Type: 3 /*xlValidateList*/, AlertStyle: 1, Operator: 1, Formula1: $"=SmartBIM_Dictionary!$A$1:$A${paramNames.Count}");
+                valRange.Interior.ColorIndex = 36; // Light yellow background
+                valRange.Value2 = "Add new...";
+            }
+            catch { /* Regional formula separator edge cases */ }
+
             // Header Stylings
             dynamic hdrRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, existingCols]];
             hdrRange.Font.Bold = true;
@@ -329,22 +368,45 @@ namespace Smart_BIMs.Commands
                 int colCount = values.GetLength(1);
 
                 Dictionary<int, ScheduleField> colMap = new Dictionary<int, ScheduleField>();
-                for (int c = 2; c <= colCount; c++)
-                {
-                    string header = values[1, c]?.ToString();
-                    if (!string.IsNullOrEmpty(header))
-                    {
-                        foreach (ScheduleField sf in fields)
-                        {
-                            if (sf.GetName() == header) { colMap[c] = sf; break; }
-                        }
-                    }
-                }
+                IList<SchedulableField> allSchedFields = schedule.Definition.GetSchedulableFields();
 
                 int updatedElements = 0;
                 using (Transaction trans = new Transaction(doc, "Advanced Live Sync"))
                 {
                     trans.Start();
+
+                    // Parse headers and dynamically inject missing fields
+                    for (int c = 2; c <= colCount; c++)
+                    {
+                        string header = values[1, c]?.ToString();
+                        if (!string.IsNullOrEmpty(header) && header != "Add new...")
+                        {
+                            ScheduleField matched = fields.FirstOrDefault(f => f.GetName() == header);
+                            if (matched != null)
+                            {
+                                colMap[c] = matched;
+                            }
+                            else
+                            {
+                                SchedulableField sFieldToInject = null;
+                                foreach (var sf in allSchedFields)
+                                {
+                                    if (sf.GetName(doc) == header) { sFieldToInject = sf; break; }
+                                }
+
+                                if (sFieldToInject != null)
+                                {
+                                    try
+                                    {
+                                        ScheduleField newlyAdded = schedule.Definition.AddField(sFieldToInject);
+                                        colMap[c] = newlyAdded;
+                                    }
+                                    catch { }
+                                }
+                            }
+                        }
+                    }
+
                     for (int r = 2; r <= rowCount; r++)
                     {
                         string idStr = values[r, 1]?.ToString();
