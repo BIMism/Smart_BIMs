@@ -1,0 +1,63 @@
+<Window x:Class="Smart_BIMs.UI.ExcelManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Advanced Excel Manager - Smart BIMs" Height="500" Width="700" 
+        WindowStartupLocation="CenterScreen" Background="#F0F4F8">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#0A192F" Padding="15" CornerRadius="5">
+            <TextBlock x:Name="txtTitle" Text="Advanced Excel Sync Manager" Foreground="White" FontSize="20" FontWeight="Bold"/>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" Margin="0,15,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="6*"/>
+                <ColumnDefinition Width="4*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Fields Selection -->
+            <Border Grid.Column="0" Background="White" CornerRadius="5" Padding="10" Margin="0,0,10,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Select Fields to Sync:" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <ListBox x:Name="lstFields" BorderThickness="1" BorderBrush="#DDDDDD">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Margin="2"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Formatting Options -->
+            <Border Grid.Column="1" Background="White" CornerRadius="5" Padding="10">
+                <StackPanel>
+                    <TextBlock Text="Appearance Matching (Excel Style):" FontWeight="Bold" Margin="0,0,0,10"/>
+                    
+                    <CheckBox x:Name="chkSyncFonts" Content="Match Revit Fonts &amp; Sizes" IsChecked="True" Margin="0,5"/>
+                    <CheckBox x:Name="chkSyncShading" Content="Sync Cell Background Shading" IsChecked="True" Margin="0,5"/>
+                    <CheckBox x:Name="chkSyncBorders" Content="Apply Grid Border Lines" IsChecked="True" Margin="0,5"/>
+                    <Separator Margin="0,10"/>
+                    <CheckBox x:Name="chkFreezeHeader" Content="Freeze Excel Header Row" IsChecked="True" Margin="0,5"/>
+                    <CheckBox x:Name="chkStripeRows" Content="Apply Alternate Stripe Rows" IsChecked="False" Margin="0,5"/>
+                    
+                    <TextBlock Text="Note: Element ID will always be synced securely to preserve link integrity." FontStyle="Italic" Foreground="Gray" Margin="0,20,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button x:Name="btnExport" Content="Export to Excel" Width="140" Height="35" Background="#0A192F" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,10,0" Click="BtnExport_Click"/>
+            <Button x:Name="btnSync" Content="Sync from Excel" Width="140" Height="35" Background="#112240" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,10,0" Click="BtnSync_Click"/>
+            <Button Content="Close" Width="100" Height="35" Background="LightGray" BorderThickness="0" Click="BtnClose_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

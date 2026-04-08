@@ -62,10 +62,22 @@ namespace Smart_BIMs
                 importBtnData.ToolTip = "Pull Excel changes back into the Revit Schedule Live.";
                 importBtnData.LargeImage = GetImageFromResource("import_icon.png");
 
+                // Advanced Manager Button
+                PushButtonData managerBtnData = new PushButtonData(
+                    "cmdAdvancedManager",
+                    "Excel\nManager",
+                    thisAssemblyPath,
+                    "Smart_BIMs.Commands.AdvancedSyncCommand"
+                );
+                managerBtnData.ToolTip = "Advanced options to specify columns and sync graphics & appearances.";
+                managerBtnData.LargeImage = GetImageFromResource("schedule_icon.png"); // Reusing schedule icon
+
                 // Add to panels
                 panelSchedules.AddItem(scheduleBtnData);
+                panelSchedules.AddSeparator();
                 panelSchedules.AddItem(exportBtnData);
                 panelSchedules.AddItem(importBtnData);
+                panelSchedules.AddItem(managerBtnData);
                 panelAbout.AddItem(aboutBtnData);
 
                 // Optional: Check for updates silently
