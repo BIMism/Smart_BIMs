@@ -111,8 +111,28 @@ namespace Smart_BIMs.Commands
 
             // Determine Read-Only status from first element
             bool[] isReadOnlyCol = new bool[fields.Count];
-            if (collectedElements.Count > 0)
-            {
+
+            int existingRows = collectedElements.Count > 0 ? collectedElements.Count : 1;
+            int existingCols = fields.Count + 1; // +1 for ElementId
+
+            // 1. Title Row
+            ws.Cells[1, 1].Value2 = schedule.Name;
+            dynamic titleRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, existingCols]];
+            titleRange.Merge();
+            titleRange.Font.Size = 16;
+            titleRange.Font.Bold = true;
+            titleRange.HorizontalAlignment = -4108; // xlCenter
+
+            // 2. Headers (Moved to Row 2)
+            object[,] headerData = new object[1, existingCols];
+            headerData[0, 0] = "ElementId";
+            for (int i = 0; i < fields.Count; i++) headerData[0, i + 1] = fields[i].ColumnHeading ?? fields[i].GetName();
+            
+            dynamic hdrRange = ws.Range[ws.Cells[2, 1], ws.Cells[2, existingCols]];
+            hdrRange.Value2 = headerData;
+
+            if (collectedElements.Count == 0) return; // Guard clause
+
             object[,] exportData = new object[existingRows, existingCols];
 
             for (int r = 0; r < collectedElements.Count; r++)
