@@ -25,7 +25,7 @@ namespace Smart_BIMs.Commands
             Excel.Application excelApp = null;
             try
             {
-                excelApp = (Excel.Application)System.Runtime.InteropServices.Marshal.GetActiveObject("Excel.Application");
+                excelApp = (Excel.Application)COMHelper.GetActiveObject("Excel.Application");
             }
             catch
             {
