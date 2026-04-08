@@ -53,7 +53,8 @@ namespace Smart_BIMs.Commands
 
                 int updatedElements = 0;
 
-                int maxExpectedRows = collectedElements.Count + 2000;
+                int scheduleElementCount = new FilteredElementCollector(doc, schedule.Id).ToElementIds().Count;
+                int maxExpectedRows = scheduleElementCount + 2000;
                 int totalRows = ws.UsedRange.Rows.Count;
                 int totalCols = ws.UsedRange.Columns.Count;
 
@@ -131,7 +132,7 @@ namespace Smart_BIMs.Commands
                 TaskDialog.Show("Live Sync Success", $"Successfully synced {updatedElements} element(s) with Excel LIVE!");
 
                 // Release COM
-                System.Runtime.InteropServices.Marshal.ReleaseComObject(usedRange);
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(safeRange);
                 System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
                 System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
                 System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);
