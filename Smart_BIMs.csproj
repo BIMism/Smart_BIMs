@@ -25,4 +25,8 @@
     <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2025.0.0" PrivateAssets="All" />
     <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2025.0.0" PrivateAssets="All" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.97.0" />
+  </ItemGroup>
 </Project>
