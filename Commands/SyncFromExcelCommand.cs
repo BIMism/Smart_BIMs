@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Excel = Microsoft.Office.Interop.Excel;
 
 namespace Smart_BIMs.Commands
 {
@@ -22,10 +21,10 @@ namespace Smart_BIMs.Commands
                 return Result.Failed;
             }
 
-            Excel.Application excelApp = null;
+            dynamic excelApp = null;
             try
             {
-                excelApp = (Excel.Application)COMHelper.GetActiveObject("Excel.Application");
+                excelApp = COMHelper.GetActiveObject("Excel.Application");
             }
             catch
             {
@@ -33,14 +32,14 @@ namespace Smart_BIMs.Commands
                 return Result.Failed;
             }
 
-            Excel.Workbook wb = excelApp.ActiveWorkbook;
+            dynamic wb = excelApp.ActiveWorkbook;
             if (wb == null)
             {
                 TaskDialog.Show("Live Sync Error", "There is no active workbook open in Excel.\nPlease ensure your schedule is open in Excel.");
                 return Result.Failed;
             }
 
-            Excel.Worksheet ws = (Excel.Worksheet)wb.ActiveSheet;
+            dynamic ws = wb.ActiveSheet;
 
             try
             {
@@ -54,10 +53,10 @@ namespace Smart_BIMs.Commands
 
                 int updatedElements = 0;
 
-                Excel.Range usedRange = ws.UsedRange;
-                object[,] values = usedRange.Value2 as object[,];
+                dynamic usedRange = ws.UsedRange;
+                object value2 = usedRange.Value2;
 
-                if (values != null && values.GetLength(0) > 1)
+                if (value2 is object[,] values && values.GetLength(0) > 1)
                 {
                     int rowCount = values.GetLength(0);
                     int colCount = values.GetLength(1);

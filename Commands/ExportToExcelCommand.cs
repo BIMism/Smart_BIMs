@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Excel = Microsoft.Office.Interop.Excel;
 
 namespace Smart_BIMs.Commands
 {
@@ -34,19 +33,20 @@ namespace Smart_BIMs.Commands
 
                 var collectedElements = new FilteredElementCollector(doc, schedule.Id).ToElements();
 
-                Excel.Application excelApp = null;
+                dynamic excelApp = null;
                 try
                 {
-                    excelApp = (Excel.Application)COMHelper.GetActiveObject("Excel.Application");
+                    excelApp = COMHelper.GetActiveObject("Excel.Application");
                 }
                 catch
                 {
-                    excelApp = new Excel.Application();
+                    Type t = Type.GetTypeFromProgID("Excel.Application");
+                    excelApp = Activator.CreateInstance(t);
                 }
 
                 excelApp.Visible = true;
-                Excel.Workbook wb = excelApp.Workbooks.Add(Type.Missing);
-                Excel.Worksheet ws = (Excel.Worksheet)wb.ActiveSheet;
+                dynamic wb = excelApp.Workbooks.Add(System.Reflection.Missing.Value);
+                dynamic ws = wb.ActiveSheet;
                 ws.Name = "ScheduleLIVE";
 
                 // Add headers
@@ -56,9 +56,9 @@ namespace Smart_BIMs.Commands
                     ws.Cells[1, i + 2] = fields[i].GetName();
                 }
 
-                Excel.Range headerRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, fields.Count + 1]];
+                dynamic headerRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, fields.Count + 1]];
                 headerRange.Font.Bold = true;
-                headerRange.Interior.ColorIndex = 37; // Standard Light Blue COM Color
+                headerRange.Interior.ColorIndex = 37;
 
                 // Add Data using 2D array for extreme speed
                 int rows = collectedElements.Count;
@@ -82,8 +82,9 @@ namespace Smart_BIMs.Commands
                         r++;
                     }
 
-                    Excel.Range dataRange = ws.Range[ws.Cells[2, 1], ws.Cells[rows + 1, cols]];
-                    dataRange.Value2 = data;
+                    dynamic dataRange = ws.Range[ws.Cells[2, 1], ws.Cells[ws.Rows.Count, ws.Columns.Count]];
+                    dynamic preciseRange = ws.Range[ws.Cells[2, 1], ws.Cells[rows + 1, cols]];
+                    preciseRange.Value2 = data;
                 }
 
                 ws.Columns.AutoFit();

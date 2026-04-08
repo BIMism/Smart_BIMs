@@ -25,8 +25,4 @@
     <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2025.0.0" PrivateAssets="All" />
     <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2025.0.0" PrivateAssets="All" />
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Office.Interop.Excel" Version="16.0.18925.20022" />
-  </ItemGroup>
 </Project>
