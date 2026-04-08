@@ -3,6 +3,7 @@
 A C# Class Library plugin targeted for Revit 2024.
 
 ## Features
+- **Multi-Version Support**: Works seamlessly on Revit 2024 (.NET 4.8) and Revit 2025/2026/2027 (.NET 8.0) natively!
 - **Easy Schedule**: Quickly auto-generate schedules for multiple categories via a simple WPF UI.
 
 ## Local Setup
