@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using ClosedXML.Excel;
-using Microsoft.Win32;
+using Excel = Microsoft.Office.Interop.Excel;
 
 namespace Smart_BIMs.Commands
 {
@@ -33,59 +32,66 @@ namespace Smart_BIMs.Commands
                     fields.Add(def.GetField(i));
                 }
 
-                // Gather elements that appear in this schedule's rules
                 var collectedElements = new FilteredElementCollector(doc, schedule.Id).ToElements();
 
-                SaveFileDialog sfd = new SaveFileDialog();
-                sfd.Filter = "Excel Files (*.xlsx)|*.xlsx";
-                sfd.FileName = schedule.Name + " - SyncData";
-                
-                if (sfd.ShowDialog() == true)
+                Excel.Application excelApp = null;
+                try
                 {
-                    using (XLWorkbook workbook = new XLWorkbook())
-                    {
-                        IXLWorksheet ws = workbook.Worksheets.Add("ScheduleData");
-
-                        // Add headers
-                        ws.Cell(1, 1).Value = "ElementId";
-                        for (int i = 0; i < fields.Count; i++)
-                        {
-                            ws.Cell(1, i + 2).Value = fields[i].GetName();
-                        }
-                        
-                        // Header Styling
-                        var headerRow = ws.Row(1);
-                        headerRow.Style.Font.Bold = true;
-                        headerRow.Style.Fill.BackgroundColor = XLColor.AirForceBlue;
-                        headerRow.Style.Font.FontColor = XLColor.White;
-
-                        // Add Data
-                        int row = 2;
-                        foreach (Element el in collectedElements)
-                        {
-                            ws.Cell(row, 1).Value = (double)el.Id.Value;
-                            for (int i = 0; i < fields.Count; i++)
-                            {
-                                Parameter p = null;
-                                foreach(Parameter param in el.Parameters)
-                                {
-                                    if (param.Id == fields[i].ParameterId) { p = param; break; }
-                                }
-                                
-                                if (p != null)
-                                {
-                                    ws.Cell(row, i + 2).Value = p.AsValueString() ?? p.AsString() ?? "";
-                                }
-                            }
-                            row++;
-                        }
-
-                        // Auto-fit
-                        ws.Columns().AdjustToContents();
-                        workbook.SaveAs(sfd.FileName);
-                    }
-                    TaskDialog.Show("Success", "Schedule successfully exported to Excel!\nYou can now edit the cells and Sync them back using the Import tool.");
+                    excelApp = (Excel.Application)System.Runtime.InteropServices.Marshal.GetActiveObject("Excel.Application");
                 }
+                catch
+                {
+                    excelApp = new Excel.Application();
+                }
+
+                excelApp.Visible = true;
+                Excel.Workbook wb = excelApp.Workbooks.Add(Type.Missing);
+                Excel.Worksheet ws = (Excel.Worksheet)wb.ActiveSheet;
+                ws.Name = "ScheduleLIVE";
+
+                // Add headers
+                ws.Cells[1, 1] = "ElementId";
+                for (int i = 0; i < fields.Count; i++)
+                {
+                    ws.Cells[1, i + 2] = fields[i].GetName();
+                }
+
+                Excel.Range headerRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, fields.Count + 1]];
+                headerRange.Font.Bold = true;
+                headerRange.Interior.ColorIndex = 37; // Standard Light Blue COM Color
+
+                // Add Data using 2D array for extreme speed
+                int rows = collectedElements.Count;
+                int cols = fields.Count + 1;
+                if (rows > 0)
+                {
+                    object[,] data = new object[rows, cols];
+                    int r = 0;
+                    foreach (Element el in collectedElements)
+                    {
+                        data[r, 0] = el.Id.Value.ToString();
+                        for (int c = 0; c < fields.Count; c++)
+                        {
+                            Parameter p = null;
+                            foreach(Parameter param in el.Parameters)
+                            {
+                                if (param.Id == fields[c].ParameterId) { p = param; break; }
+                            }
+                            data[r, c + 1] = p != null ? (p.AsValueString() ?? p.AsString() ?? "") : "";
+                        }
+                        r++;
+                    }
+
+                    Excel.Range dataRange = ws.Range[ws.Cells[2, 1], ws.Cells[rows + 1, cols]];
+                    dataRange.Value2 = data;
+                }
+
+                ws.Columns.AutoFit();
+                
+                // Release COM gracefully
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);
 
                 return Result.Succeeded;
             }

@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using ClosedXML.Excel;
-using Microsoft.Win32;
+using Excel = Microsoft.Office.Interop.Excel;
 
 namespace Smart_BIMs.Commands
 {
@@ -23,89 +22,112 @@ namespace Smart_BIMs.Commands
                 return Result.Failed;
             }
 
+            Excel.Application excelApp = null;
             try
             {
-                OpenFileDialog ofd = new OpenFileDialog();
-                ofd.Filter = "Excel Files (*.xlsx)|*.xlsx";
-                if (ofd.ShowDialog() == true)
+                excelApp = (Excel.Application)System.Runtime.InteropServices.Marshal.GetActiveObject("Excel.Application");
+            }
+            catch
+            {
+                TaskDialog.Show("Live Sync Error", "Microsoft Excel is not currently running.\nYou must have Excel OPEN to perform a live sync.");
+                return Result.Failed;
+            }
+
+            Excel.Workbook wb = excelApp.ActiveWorkbook;
+            if (wb == null)
+            {
+                TaskDialog.Show("Live Sync Error", "There is no active workbook open in Excel.\nPlease ensure your schedule is open in Excel.");
+                return Result.Failed;
+            }
+
+            Excel.Worksheet ws = (Excel.Worksheet)wb.ActiveSheet;
+
+            try
+            {
+                ScheduleDefinition def = schedule.Definition;
+                int fieldCount = def.GetFieldCount();
+                List<ScheduleField> fields = new List<ScheduleField>();
+                for (int i = 0; i < fieldCount; i++)
                 {
-                    ScheduleDefinition def = schedule.Definition;
-                    int fieldCount = def.GetFieldCount();
-                    List<ScheduleField> fields = new List<ScheduleField>();
-                    for (int i = 0; i < fieldCount; i++)
+                    fields.Add(def.GetField(i));
+                }
+
+                int updatedElements = 0;
+
+                Excel.Range usedRange = ws.UsedRange;
+                object[,] values = usedRange.Value2 as object[,];
+
+                if (values != null && values.GetLength(0) > 1)
+                {
+                    int rowCount = values.GetLength(0);
+                    int colCount = values.GetLength(1);
+
+                    // Map columns
+                    Dictionary<int, ScheduleField> colMap = new Dictionary<int, ScheduleField>();
+                    for (int c = 2; c <= colCount; c++)
                     {
-                        fields.Add(def.GetField(i));
+                        string header = values[1, c]?.ToString();
+                        if (!string.IsNullOrEmpty(header))
+                        {
+                            foreach (ScheduleField sf in fields)
+                            {
+                                if (sf.GetName() == header)
+                                {
+                                    colMap[c] = sf;
+                                    break;
+                                }
+                            }
+                        }
                     }
 
-                    int updatedElements = 0;
-
-                    using (Transaction trans = new Transaction(doc, "Sync from Excel"))
+                    using (Transaction trans = new Transaction(doc, "Live Sync from Excel"))
                     {
                         trans.Start();
 
-                        using (XLWorkbook workbook = new XLWorkbook(ofd.FileName))
+                        for (int r = 2; r <= rowCount; r++)
                         {
-                            IXLWorksheet ws = workbook.Worksheet(1);
-                            
-                            // Map columns from Excel header
-                            Dictionary<int, ScheduleField> colMap = new Dictionary<int, ScheduleField>();
-                            int maxCol = ws.LastColumnUsed().ColumnNumber();
-                            for (int c = 2; c <= maxCol; c++)
+                            string idStr = values[r, 1]?.ToString();
+                            if (!string.IsNullOrEmpty(idStr) && long.TryParse(idStr, out long elementIdLong))
                             {
-                                string header = ws.Cell(1, c).GetString();
-                                foreach (ScheduleField sf in fields)
+                                ElementId id = new ElementId(elementIdLong);
+                                Element el = doc.GetElement(id);
+                                if (el != null)
                                 {
-                                    if (sf.GetName() == header)
+                                    bool updated = false;
+                                    foreach (var kvp in colMap)
                                     {
-                                        colMap[c] = sf;
-                                        break;
-                                    }
-                                }
-                            }
+                                        int col = kvp.Key;
+                                        ScheduleField field = kvp.Value;
+                                        string val = values[r, col]?.ToString() ?? "";
 
-                            int maxRow = ws.LastRowUsed().RowNumber();
-                            for (int r = 2; r <= maxRow; r++)
-                            {
-                                string idStr = ws.Cell(r, 1).GetString();
-                                if (long.TryParse(idStr, out long elementIdLong))
-                                {
-                                    ElementId id = new ElementId(elementIdLong);
-                                    Element el = doc.GetElement(id);
-                                    if (el != null)
-                                    {
-                                        bool updated = false;
-                                        foreach (var kvp in colMap)
+                                        Parameter p = null;
+                                        foreach (Parameter param in el.Parameters)
                                         {
-                                            int col = kvp.Key;
-                                            ScheduleField field = kvp.Value;
-                                            string val = ws.Cell(r, col).GetString();
-
-                                            Parameter p = null;
-                                            foreach (Parameter param in el.Parameters)
-                                            {
-                                                if (param.Id == field.ParameterId) { p = param; break; }
-                                            }
-
-                                            if (p != null && !p.IsReadOnly)
-                                            {
-                                                try { 
-                                                    p.Set(val); 
-                                                    updated = true; 
-                                                } 
-                                                catch { /* Ignore format mismatch natively */ }
-                                            }
+                                            if (param.Id == field.ParameterId) { p = param; break; }
                                         }
-                                        if (updated) updatedElements++;
+
+                                        if (p != null && !p.IsReadOnly)
+                                        {
+                                            try { p.Set(val); updated = true; }
+                                            catch { /* Ignore format mismatch natively */ }
+                                        }
                                     }
+                                    if (updated) updatedElements++;
                                 }
                             }
                         }
                         
                         trans.Commit();
                     }
-
-                    TaskDialog.Show("Success", $"Successfully synced {updatedElements} element(s) with Excel data.");
                 }
+
+                TaskDialog.Show("Live Sync Success", $"Successfully synced {updatedElements} element(s) with Excel LIVE!");
+
+                // Release COM
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(usedRange);
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);
 
                 return Result.Succeeded;
             }
