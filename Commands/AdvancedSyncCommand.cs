@@ -118,7 +118,6 @@ namespace Smart_BIMs.Commands
             // 1. Title Row
             ws.Cells[1, 1].Value2 = schedule.Name;
             dynamic titleRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, existingCols + 3]];
-            titleRange.Merge();
             titleRange.Font.Size = 16;
             titleRange.Font.Bold = true;
             titleRange.HorizontalAlignment = -4108; // xlCenter
@@ -319,6 +318,9 @@ namespace Smart_BIMs.Commands
                 overallGrid.Font.Name = "Arial"; // Safe default corresponding to basic Revit schedule font
             }
 
+            // Finalize Title Merge safely avoiding Column lock intersections
+            try { titleRange.Merge(); } catch { }
+
             // 6. Freeze Panes
             if (ui.chkFreezeHeader.IsChecked == true)
             {
@@ -330,6 +332,7 @@ namespace Smart_BIMs.Commands
             // Final sheet protection
             if (ui.chkSyncShading.IsChecked == true)
             {
+                try { titleRange.Locked = true; } catch { }
                 ws.Protect(AllowFormattingColumns: true, AllowFormattingRows: true, AllowSorting: true, AllowFiltering: true);
             }
 
