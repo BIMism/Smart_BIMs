@@ -200,9 +200,9 @@ namespace Smart_BIMs.Commands
                 }
 
                 // Header styling overrides
-                dynamic headerRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, fields.Count + 1]];
-                headerRange.Font.Bold = true;
-                headerRange.Interior.ColorIndex = 37;
+                dynamic hdrRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, fields.Count + 1]];
+                hdrRange.Font.Bold = true;
+                hdrRange.Interior.ColorIndex = 37;
 
                 // Protect
                 ws.Protect(AllowFormattingColumns: true, AllowFormattingRows: true, AllowSorting: true, AllowFiltering: true);
