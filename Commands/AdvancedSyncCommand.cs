@@ -330,9 +330,8 @@ namespace Smart_BIMs.Commands
             {
                 valRange.Validation.Delete();
                 valRange.Validation.Add(Type: 3 /*xlValidateList*/, AlertStyle: 1, Operator: 1, Formula1: $"=SmartBIM_Dictionary!$A$1:$A${Math.Max(1, paramNames.Count)}");
-                valRange.Interior.ColorIndex = 36; // Light yellow background
-                valRange.Value2 = "Add new...";
-
+                // Removed yellow color and "Add new..." text to keep the UI clean visually
+                
                 // Extract Alpha column string for VLOOKUP anchoring
                 int colRef = existingCols + 1;
                 string colStr = "";
@@ -418,7 +417,7 @@ namespace Smart_BIMs.Commands
                     for (int c = 2; c <= colCount; c++)
                     {
                         string header = values[1, c]?.ToString();
-                        if (!string.IsNullOrEmpty(header) && header != "Add new...")
+                        if (!string.IsNullOrEmpty(header) && header.Trim() != "")
                         {
                             ScheduleField matched = fields.FirstOrDefault(f => f.GetName() == header);
                             if (matched != null)
