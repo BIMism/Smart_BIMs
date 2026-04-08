@@ -56,6 +56,21 @@ namespace Smart_BIMs.Commands
                 }
 
                 dynamic ws = wb.ActiveSheet;
+                try { ws.Unprotect(); } catch { }
+
+                // Determine Read-Only status from first element
+                bool[] isReadOnlyCol = new bool[fields.Count];
+                if (collectedElements.Count > 0)
+                {
+                    Element firstEl = null;
+                    foreach(Element e in collectedElements) { firstEl = e; break; }
+                    for (int i = 0; i < fields.Count; i++)
+                    {
+                        Parameter p = null;
+                        foreach (Parameter param in firstEl.Parameters) { if (param.Id == fields[i].ParameterId) { p = param; break; } }
+                        isReadOnlyCol[i] = p != null ? p.IsReadOnly : true;
+                    }
+                }
 
                 if (isNew)
                 {
@@ -165,6 +180,32 @@ namespace Smart_BIMs.Commands
                     updatedRange.Value2 = newData;
                     TaskDialog.Show("Live Sync Success", "Revit Schedule successfully pushed to the active Excel sheet!");
                 }
+
+                // Apply Styles and Locking unconditionally
+                ws.Cells.Locked = false;
+                ws.Columns[1].Locked = true;
+                ws.Columns[1].Interior.ColorIndex = 15; // Light Gray
+
+                for (int i = 0; i < fields.Count; i++)
+                {
+                    if (isReadOnlyCol[i])
+                    {
+                        ws.Columns[i + 2].Locked = true;
+                        ws.Columns[i + 2].Interior.ColorIndex = 15; // Light Gray
+                    }
+                    else
+                    {
+                        ws.Columns[i + 2].Interior.ColorIndex = -4142; // xlNone
+                    }
+                }
+
+                // Header styling overrides
+                dynamic headerRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, fields.Count + 1]];
+                headerRange.Font.Bold = true;
+                headerRange.Interior.ColorIndex = 37;
+
+                // Protect
+                ws.Protect(AllowFormattingColumns: true, AllowFormattingRows: true, AllowSorting: true, AllowFiltering: true);
 
                 System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
                 if (wb != null) System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
