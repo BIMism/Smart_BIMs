@@ -113,116 +113,49 @@ namespace Smart_BIMs.Commands
             bool[] isReadOnlyCol = new bool[fields.Count];
             if (collectedElements.Count > 0)
             {
-                Element firstEl = collectedElements.First();
-                for (int i = 0; i < fields.Count; i++)
-                {
-                    Parameter p = null;
-                    foreach (Parameter param in firstEl.Parameters) { if (param.Id == fields[i].ParameterId) { p = param; break; } }
-                    isReadOnlyCol[i] = p != null ? p.IsReadOnly : true;
-                }
-            }
+            object[,] exportData = new object[existingRows, existingCols];
 
-            int existingRows = 1;
-            int existingCols = fields.Count + 1;
-
-            if (isNew)
+            for (int r = 0; r < collectedElements.Count; r++)
             {
-                ws.Name = "ScheduleAdvanced";
-                ws.Cells[1, 1] = "ElementId";
-                for (int i = 0; i < fields.Count; i++) ws.Cells[1, i + 2] = fields[i].GetName();
+                Element el = collectedElements[r];
+                exportData[r, 0] = el.Id.IntegerValue.ToString();
 
-                int rows = collectedElements.Count;
-                if (rows > 0)
+                for (int c = 0; c < fields.Count; c++)
                 {
-                    object[,] data = new object[rows, existingCols];
-                    int r = 0;
-                    foreach (Element el in collectedElements)
+                    ScheduleField field = fields[c];
+                    Parameter param = el.get_Parameter(field.ParameterId);
+                    
+                    if (param == null)
                     {
-                        data[r, 0] = el.Id.Value.ToString();
-                        for (int c = 0; c < fields.Count; c++)
+                        ElementId typeId = el.GetTypeId();
+                        if (typeId != ElementId.InvalidElementId)
                         {
-                            Parameter p = null;
-                            foreach (Parameter param in el.Parameters) { if (param.Id == fields[c].ParameterId) { p = param; break; } }
-                            data[r, c + 1] = p != null ? (p.AsValueString() ?? p.AsString() ?? "") : "";
-                        }
-                        r++;
-                    }
-                    dynamic preciseRange = ws.Range[ws.Cells[2, 1], ws.Cells[rows + 1, existingCols]];
-                    preciseRange.Value2 = data;
-                }
-                existingRows = rows + 1;
-            }
-            else
-            {
-                int maxExpectedRows = collectedElements.Count + 2000;
-                int totalRows = ws.UsedRange.Rows.Count;
-                int totalCols = ws.UsedRange.Columns.Count;
-
-                if (totalRows > maxExpectedRows) totalRows = maxExpectedRows;
-                if (totalCols > 256) totalCols = 256;
-
-                dynamic safeRange = ws.Range[ws.Cells[1, 1], ws.Cells[totalRows, totalCols]];
-                object value2 = safeRange.Value2;
-
-                Dictionary<string, int> colMap = new Dictionary<string, int>();
-                if (value2 is object[,] evalues)
-                {
-                    existingRows = evalues.GetLength(0);
-                    existingCols = Math.Max(existingCols, evalues.GetLength(1));
-                    for (int c = 2; c <= evalues.GetLength(1); c++)
-                    {
-                        string header = evalues[1, c]?.ToString();
-                        if (!string.IsNullOrEmpty(header)) colMap[header] = c;
-                    }
-                }
-
-                Dictionary<string, int> rowMap = new Dictionary<string, int>();
-                if (value2 is object[,] v2)
-                {
-                    for (int r = 2; r <= existingRows; r++)
-                    {
-                        string idStr = v2[r, 1]?.ToString();
-                        if (!string.IsNullOrEmpty(idStr)) rowMap[idStr] = r;
-                    }
-                }
-
-                int totalRowsNeeded = Math.Max(existingRows, rowMap.Count + collectedElements.Count + 1);
-                object[,] newData = new object[totalRowsNeeded, existingCols];
-
-                if (value2 is object[,] ov)
-                {
-                    for (int r = 1; r <= existingRows; r++)
-                        for (int c = 1; c <= ov.GetLength(1); c++)
-                            newData[r - 1, c - 1] = ov[r, c];
-                }
-
-                int currentMaxRow = existingRows;
-                foreach (Element el in collectedElements)
-                {
-                    string idStr = el.Id.Value.ToString();
-                    int r = 0; 
-                    if (rowMap.ContainsKey(idStr)) { r = rowMap[idStr] - 1; }
-                    else { r = currentMaxRow; currentMaxRow++; newData[r, 0] = idStr; }
-
-                    foreach (var f in fields)
-                    {
-                        if (colMap.ContainsKey(f.GetName()))
-                        {
-                            int c = colMap[f.GetName()] - 1;
-                            Parameter p = null;
-                            foreach (Parameter param in el.Parameters) { if (param.Id == f.ParameterId) { p = param; break; } }
-                            newData[r, c] = p != null ? (p.AsValueString() ?? p.AsString() ?? "") : "";
+                            ElementType eType = doc.GetElement(typeId) as ElementType;
+                            param = eType?.get_Parameter(field.ParameterId);
                         }
                     }
+
+                    if (param != null)
+                    {
+                        if (r == 0) isReadOnlyCol[c] = param.IsReadOnly;
+                        string val = param.AsValueString();
+                        if (string.IsNullOrEmpty(val)) val = param.AsString();
+                        if (string.IsNullOrEmpty(val)) {
+                            if (param.StorageType == StorageType.Double) val = param.AsDouble().ToString("0.##");
+                            else if (param.StorageType == StorageType.Integer) val = param.AsInteger().ToString();
+                        }
+                        exportData[r, c + 1] = val;
+                    }
                 }
-                existingRows = currentMaxRow;
-                dynamic updatedRange = ws.Range[ws.Cells[1, 1], ws.Cells[currentMaxRow, existingCols]];
-                updatedRange.Value2 = newData;
             }
+            
+            // Write Data (Moved to Row 3)
+            dynamic dataRange = ws.Range[ws.Cells[3, 1], ws.Cells[2 + existingRows, existingCols]];
+            dataRange.Value2 = exportData;
 
             // Apply Settings from UI
             ws.Columns.AutoFit();
-            dynamic fullGrid = ws.Range[ws.Cells[1, 1], ws.Cells[existingRows, existingCols]];
+            dynamic fullGrid = ws.Range[ws.Cells[2, 1], ws.Cells[2 + existingRows, existingCols]];
 
             // 1. Gridlines / Borders
             if (ui.chkSyncBorders.IsChecked == true)
@@ -257,16 +190,14 @@ namespace Smart_BIMs.Commands
             // 4. Stripe Rows Pattern
             if (ui.chkStripeRows.IsChecked == true)
             {
-                for (int r = 2; r <= existingRows; r += 2)
+                for (int r = 3; r <= 2 + existingRows; r += 2)
                 {
-                    dynamic rowRange = ws.Range[ws.Cells[r, 2], ws.Cells[r, existingCols]];
-                    // Avoid overriding gray ReadOnly columns with white stripe! Just stripe unlocked cells.
-                    for (int c = 2; c <= existingCols; c++)
+                    dynamic rowRange = ws.Range[ws.Cells[r, 1], ws.Cells[r, existingCols]];
+                    foreach (dynamic cell in rowRange.Cells)
                     {
-                        dynamic cell = ws.Cells[r, c];
-                        if (cell.Interior.ColorIndex == -4142) // if it has no background color yet
+                        if (cell.Interior.ColorIndex == -4142 || cell.Interior.ColorIndex == 2)
                         {
-                            cell.Interior.ColorIndex = 24; // Light Blue/Gray Stripe
+                            cell.Interior.ColorIndex = 24; // xlThemeColorAccent5 light tint
                         }
                     }
                 }
@@ -274,7 +205,7 @@ namespace Smart_BIMs.Commands
 
             // Export All Available Parameters to Hidden Sheet for Validation Dictionary
             HashSet<string> existingNames = new HashSet<string>();
-            foreach (var f in fields) existingNames.Add(f.GetName());
+            foreach (var f in fields) existingNames.Add(f.ColumnHeading);
 
             IList<SchedulableField> allSchedulable = schedule.Definition.GetSchedulableFields();
             List<string> paramNames = new List<string>();
@@ -292,8 +223,7 @@ namespace Smart_BIMs.Commands
                     if (collectedElements.Count > 0)
                     {
                         Element firstEl = collectedElements.First();
-                        Parameter p = null;
-                        foreach (Parameter param in firstEl.Parameters) { if (param.Id == sf.ParameterId) { p = param; break; } }
+                        Parameter p = firstEl.get_Parameter(sf.ParameterId);
                         if (p != null) isRO = p.IsReadOnly;
                     }
                     paramReadOnly.Add(isRO);
@@ -320,8 +250,8 @@ namespace Smart_BIMs.Commands
             
             // Allow Dropdown Additions
             int maxR = existingRows < 2 ? 100 : existingRows;
-            dynamic valRange = ws.Range[ws.Cells[1, existingCols + 1], ws.Cells[1, existingCols + 10]];
-            dynamic newCellDataRange = ws.Range[ws.Cells[2, existingCols + 1], ws.Cells[maxR, existingCols + 10]];
+            dynamic valRange = ws.Range[ws.Cells[2, existingCols + 1], ws.Cells[2, existingCols + 10]];
+            dynamic newCellDataRange = ws.Range[ws.Cells[3, existingCols + 1], ws.Cells[2 + maxR, existingCols + 10]];
             
             valRange.Locked = false;
             newCellDataRange.Locked = false;
@@ -330,29 +260,28 @@ namespace Smart_BIMs.Commands
             {
                 valRange.Validation.Delete();
                 valRange.Validation.Add(Type: 3 /*xlValidateList*/, AlertStyle: 1, Operator: 1, Formula1: $"=SmartBIM_Dictionary!$A$1:$A${Math.Max(1, paramNames.Count)}");
-                // Removed yellow color and "Add new..." text to keep the UI clean visually
                 
-                // Extract Alpha column string for VLOOKUP anchoring
                 int colRef = existingCols + 1;
                 string colStr = "";
                 while(colRef > 0) { int m = (colRef-1)%26; colStr = Convert.ToChar('A'+m) + colStr; colRef = (colRef-m)/26; }
 
                 newCellDataRange.Validation.Delete();
                 newCellDataRange.Validation.Add(Type: 7 /*xlValidateCustom*/, AlertStyle: 1, Operator: 1, 
-                    Formula1: $"=IFERROR(VLOOKUP({colStr}$1, SmartBIM_Dictionary!$A$1:$B$1000, 2, FALSE), \"True\")<>\"True\"");
+                    Formula1: $"=IFERROR(VLOOKUP({colStr}$2, SmartBIM_Dictionary!$A$1:$B$1000, 2, FALSE), \"True\")<>\"True\"");
                 newCellDataRange.Validation.ErrorTitle = "Read-Only Parameter";
                 newCellDataRange.Validation.ErrorMessage = "This parameter is generated by Revit natively and is strictly Read-Only.";
 
                 dynamic formatCond = newCellDataRange.FormatConditions.Add(Type: 2 /*xlExpression*/, 
-                    Formula1: $"=IFERROR(VLOOKUP({colStr}$1, SmartBIM_Dictionary!$A$1:$B$1000, 2, FALSE), \"False\")=\"True\"");
+                    Formula1: $"=IFERROR(VLOOKUP({colStr}$2, SmartBIM_Dictionary!$A$1:$B$1000, 2, FALSE), \"False\")=\"True\"");
                 formatCond.Interior.ColorIndex = 15; // Gray to show it is locked
             }
             catch { /* Regional formula separator edge cases */ }
 
             // Header Stylings
-            dynamic hdrRange = ws.Range[ws.Cells[1, 1], ws.Cells[1, existingCols]];
-            hdrRange.Font.Bold = true;
-            hdrRange.Interior.ColorIndex = 37;
+            dynamic hdrRangeFormat = ws.Range[ws.Cells[2, 1], ws.Cells[2, existingCols]];
+            hdrRangeFormat.Font.Bold = true;
+            hdrRangeFormat.Borders.LineStyle = 1;
+            hdrRangeFormat.Interior.ColorIndex = 37;
 
             // 5. Fonts (Standard uniform mapping)
             if (ui.chkSyncFonts.IsChecked == true)
@@ -363,13 +292,9 @@ namespace Smart_BIMs.Commands
             // 6. Freeze Panes
             if (ui.chkFreezeHeader.IsChecked == true)
             {
-                try
-                {
-                    ws.Activate();
-                    excelApp.ActiveWindow.SplitRow = 1;
-                    excelApp.ActiveWindow.FreezePanes = true;
-                }
-                catch { }
+                ws.Activate();
+                ws.Application.ActiveWindow.SplitRow = 2; // Offset for Title
+                ws.Application.ActiveWindow.FreezePanes = true;
             }
 
             // Final sheet protection
@@ -389,18 +314,13 @@ namespace Smart_BIMs.Commands
 
         private void SyncFromExcelLive(Document doc, ViewSchedule schedule, List<ScheduleField> fields, dynamic ws)
         {
-            int scheduleElementCount = new FilteredElementCollector(doc, schedule.Id).ToElementIds().Count;
-            int maxExpectedRows = scheduleElementCount + 2000;
             int totalRows = ws.UsedRange.Rows.Count;
             int totalCols = ws.UsedRange.Columns.Count;
-
-            if (totalRows > maxExpectedRows) totalRows = maxExpectedRows;
-            if (totalCols > 256) totalCols = 256;
 
             dynamic safeRange = ws.Range[ws.Cells[1, 1], ws.Cells[totalRows, totalCols]];
             object value2 = safeRange.Value2;
 
-            if (value2 is object[,] values && values.GetLength(0) > 1)
+            if (value2 is object[,] values && values.GetLength(0) > 2)
             {
                 int rowCount = values.GetLength(0);
                 int colCount = values.GetLength(1);
@@ -416,10 +336,10 @@ namespace Smart_BIMs.Commands
                     // Parse headers and dynamically inject missing fields
                     for (int c = 2; c <= colCount; c++)
                     {
-                        string header = values[1, c]?.ToString();
+                        string header = values[2, c]?.ToString();
                         if (!string.IsNullOrEmpty(header) && header.Trim() != "")
                         {
-                            ScheduleField matched = fields.FirstOrDefault(f => f.GetName() == header);
+                            ScheduleField matched = fields.FirstOrDefault(f => f.ColumnHeading == header);
                             if (matched != null)
                             {
                                 colMap[c] = matched;
@@ -445,26 +365,38 @@ namespace Smart_BIMs.Commands
                         }
                     }
 
-                    for (int r = 2; r <= rowCount; r++)
+                    for (int r = 3; r <= rowCount; r++)
                     {
                         string idStr = values[r, 1]?.ToString();
-                        if (!string.IsNullOrEmpty(idStr) && long.TryParse(idStr, out long elementIdLong))
+                        if (!string.IsNullOrEmpty(idStr) && int.TryParse(idStr, out int elementIdInt))
                         {
-                            ElementId id = new ElementId(elementIdLong);
-                            Element el = doc.GetElement(id);
+                            ElementId eId = new ElementId(elementIdInt);
+                            Element el = doc.GetElement(eId);
                             if (el != null)
                             {
                                 bool updated = false;
-                                foreach (var kvp in colMap)
+                                for (int c = 2; c <= colCount; c++)
                                 {
-                                    ScheduleField field = kvp.Value;
-                                    string val = values[r, kvp.Key]?.ToString() ?? "";
-
-                                    Parameter p = null;
-                                    foreach (Parameter param in el.Parameters) { if (param.Id == field.ParameterId) { p = param; break; } }
-                                    if (p != null && !p.IsReadOnly)
+                                    if (colMap.ContainsKey(c))
                                     {
-                                        try { p.Set(val); updated = true; } catch { }
+                                        ScheduleField matchedField = colMap[c];
+                                        Parameter p = el.get_Parameter(matchedField.ParameterId);
+
+                                        if (p == null)
+                                        {
+                                            ElementId typeId = el.GetTypeId();
+                                            if (typeId != ElementId.InvalidElementId)
+                                            {
+                                                ElementType eType = doc.GetElement(typeId) as ElementType;
+                                                p = eType?.get_Parameter(matchedField.ParameterId);
+                                            }
+                                        }
+
+                                        if (p != null && !p.IsReadOnly)
+                                        {
+                                            string sVal = values[r, c]?.ToString();
+                                            try { p.Set(sVal); updated = true; } catch { }
+                                        }
                                     }
                                 }
                                 if (updated) updatedElements++;
