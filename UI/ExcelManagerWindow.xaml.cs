@@ -29,11 +29,28 @@ namespace Smart_BIMs.UI
         {
             AvailableFields = new List<FieldItem>();
             ScheduleDefinition def = _schedule.Definition;
+            
+            HashSet<ElementId> existingIds = new HashSet<ElementId>();
             for (int i = 0; i < def.GetFieldCount(); i++)
             {
-                ScheduleField field = def.GetField(i);
-                AvailableFields.Add(new FieldItem { Name = field.GetName(), Field = field, IsSelected = true });
+                existingIds.Add(def.GetField(i).ParameterId);
             }
+
+            IList<SchedulableField> allFields = def.GetSchedulableFields();
+            foreach (SchedulableField sf in allFields)
+            {
+                bool isIn = existingIds.Contains(sf.ParameterId);
+                AvailableFields.Add(new FieldItem {
+                    Name = sf.GetName(_doc),
+                    Schedulable = sf,
+                    IsSelected = isIn,
+                    IsInSchedule = isIn
+                });
+            }
+
+            // Put existing headers first
+            AvailableFields.Sort((a, b) => b.IsInSchedule.CompareTo(a.IsInSchedule));
+
             lstFields.ItemsSource = AvailableFields;
         }
 
@@ -58,7 +75,8 @@ namespace Smart_BIMs.UI
     public class FieldItem
     {
         public string Name { get; set; }
-        public ScheduleField Field { get; set; }
+        public SchedulableField Schedulable { get; set; }
         public bool IsSelected { get; set; }
+        public bool IsInSchedule { get; set; }
     }
 }

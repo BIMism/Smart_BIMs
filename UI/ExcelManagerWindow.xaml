@@ -55,7 +55,7 @@
 
         <!-- Buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
-            <Button x:Name="btnExport" Content="Export to Excel" Width="140" Height="35" Background="#0A192F" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,10,0" Click="BtnExport_Click"/>
+            <Button x:Name="btnExport" Content="Sync To Excel" Width="140" Height="35" Background="#0A192F" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,10,0" Click="BtnExport_Click"/>
             <Button x:Name="btnSync" Content="Sync from Excel" Width="140" Height="35" Background="#112240" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,10,0" Click="BtnSync_Click"/>
             <Button Content="Close" Width="100" Height="35" Background="LightGray" BorderThickness="0" Click="BtnClose_Click"/>
         </StackPanel>

@@ -30,17 +30,45 @@ namespace Smart_BIMs.Commands
 
                 if (!ui.DoExport && !ui.DoSync) return Result.Cancelled;
 
-                // Extract Fields
-                List<ScheduleField> fields = new List<ScheduleField>();
-                foreach (var item in ui.AvailableFields)
-                {
-                    if (item.IsSelected) fields.Add(item.Field);
-                }
+                // Validate selections
+                bool hasSelections = false;
+                foreach (var item in ui.AvailableFields) { if (item.IsSelected) hasSelections = true; }
 
-                if (fields.Count == 0)
+                if (!hasSelections)
                 {
                     TaskDialog.Show("Warning", "No fields were selected for syncing.");
                     return Result.Cancelled;
+                }
+
+                // Inject unassigned fields into Revit Schedule
+                using (Transaction t = new Transaction(doc, "Add Fields to Schedule"))
+                {
+                    t.Start();
+                    ScheduleDefinition def = schedule.Definition;
+                    HashSet<ElementId> existingFieldIds = new HashSet<ElementId>();
+                    for (int i = 0; i < def.GetFieldCount(); i++) existingFieldIds.Add(def.GetField(i).ParameterId);
+
+                    foreach (var item in ui.AvailableFields)
+                    {
+                        if (item.IsSelected && !existingFieldIds.Contains(item.Schedulable.ParameterId))
+                        {
+                            try { def.AddField(item.Schedulable); } catch { }
+                        }
+                    }
+                    t.Commit();
+                }
+
+                // Formulate final exportable fields
+                List<ScheduleField> fields = new List<ScheduleField>();
+                ScheduleDefinition updatedDef = schedule.Definition;
+                for (int i = 0; i < updatedDef.GetFieldCount(); i++)
+                {
+                    ScheduleField sf = updatedDef.GetField(i);
+                    var matchItem = ui.AvailableFields.FirstOrDefault(x => x.Schedulable.ParameterId == sf.ParameterId);
+                    if (matchItem != null && matchItem.IsSelected)
+                    {
+                        fields.Add(sf);
+                    }
                 }
 
                 dynamic excelApp = null;
