@@ -159,7 +159,6 @@ namespace Smart_BIMs.Commands
                     
                     if (param == null)
                     {
-                        ElementId typeId = el.GetTypeId();
                         if (typeId != ElementId.InvalidElementId)
                         {
                             ElementType eType = doc.GetElement(typeId) as ElementType;
