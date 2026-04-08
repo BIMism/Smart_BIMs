@@ -133,15 +133,27 @@ namespace Smart_BIMs.Commands
             if (collectedElements.Count == 0) return; // Guard clause
 
             object[,] exportData = new object[existingRows, existingCols];
+            
+            List<HashSet<string>> columnUniqueValues = new List<HashSet<string>>();
+            for (int i = 0; i < fields.Count; i++) columnUniqueValues.Add(new HashSet<string>());
+            Dictionary<ElementId, int> typeMasterRow = new Dictionary<ElementId, int>();
 
             for (int r = 0; r < collectedElements.Count; r++)
             {
                 Element el = collectedElements[r];
                 exportData[r, 0] = el.Id.IntegerValue.ToString();
+                
+                ElementId typeId = el.GetTypeId();
+                bool isFirstOfType = false;
+                if (typeId != ElementId.InvalidElementId && !typeMasterRow.ContainsKey(typeId)) {
+                    typeMasterRow[typeId] = r + 3;
+                    isFirstOfType = true;
+                }
 
                 for (int c = 0; c < fields.Count; c++)
                 {
                     ScheduleField field = fields[c];
+                    bool isTypeParam = false;
                     Parameter param = null;
                     foreach (Parameter pI in el.Parameters) { if (pI.Id == field.ParameterId) { param = pI; break; } }
                     
@@ -152,7 +164,7 @@ namespace Smart_BIMs.Commands
                         {
                             ElementType eType = doc.GetElement(typeId) as ElementType;
                             if (eType != null) {
-                                foreach (Parameter pI in eType.Parameters) { if (pI.Id == field.ParameterId) { param = pI; break; } }
+                                foreach (Parameter pI in eType.Parameters) { if (pI.Id == field.ParameterId) { param = pI; isTypeParam = true; break; } }
                             }
                         }
                     }
@@ -166,7 +178,15 @@ namespace Smart_BIMs.Commands
                             if (param.StorageType == StorageType.Double) val = param.AsDouble().ToString("0.##");
                             else if (param.StorageType == StorageType.Integer) val = param.AsInteger().ToString();
                         }
-                        exportData[r, c + 1] = val;
+                        
+                        if (!string.IsNullOrEmpty(val) && val.Trim() != "") columnUniqueValues[c].Add(val);
+
+                        if (isTypeParam && !isFirstOfType) {
+                            string colLetter = GetExcelColumnName(c + 2);
+                            exportData[r, c + 1] = $"={colLetter}${typeMasterRow[typeId]}";
+                        } else {
+                            exportData[r, c + 1] = val;
+                        }
                     }
                 }
             }
@@ -259,13 +279,25 @@ namespace Smart_BIMs.Commands
             
             if (paramNames.Count > 0)
             {
-                object[,] dictData = new object[paramNames.Count, 2];
+                int maxDictRows = paramNames.Count;
+                foreach (var set in columnUniqueValues) if (set.Count > maxDictRows) maxDictRows = set.Count;
+
+                object[,] dictData = new object[maxDictRows, 2 + fields.Count];
                 for(int i=0; i<paramNames.Count; i++) 
                 {
                     dictData[i,0] = paramNames[i];
                     dictData[i,1] = paramReadOnly[i] ? "True" : "False";
                 }
-                dynamic dictRange = dictWs.Range[dictWs.Cells[1,1], dictWs.Cells[paramNames.Count, 2]];
+                
+                for (int c = 0; c < fields.Count; c++)
+                {
+                    List<string> listVals = columnUniqueValues[c].ToList();
+                    for(int r = 0; r < listVals.Count; r++) {
+                        dictData[r, 2 + c] = listVals[r];
+                    }
+                }
+
+                dynamic dictRange = dictWs.Range[dictWs.Cells[1,1], dictWs.Cells[maxDictRows, 2 + fields.Count]];
                 dictRange.Value2 = dictData;
             }
 
@@ -289,9 +321,7 @@ namespace Smart_BIMs.Commands
                 valRange.Interior.ColorIndex = 20; // Light Blue
                 valRange.Borders.LineStyle = 1;
                 
-                int colRef = existingCols + 1;
-                string colStr = "";
-                while(colRef > 0) { int m = (colRef-1)%26; colStr = Convert.ToChar('A'+m) + colStr; colRef = (colRef-m)/26; }
+                string colStr = GetExcelColumnName(existingCols + 1);
 
                 newCellDataRange.Validation.Delete();
                 newCellDataRange.Validation.Add(Type: 7 /*xlValidateCustom*/, AlertStyle: 1, Operator: 1, 
@@ -302,6 +332,19 @@ namespace Smart_BIMs.Commands
                 dynamic formatCond = newCellDataRange.FormatConditions.Add(Type: 2 /*xlExpression*/, 
                     Formula1: $"=IFERROR(VLOOKUP({colStr}$2, SmartBIM_Dictionary!$A$1:$B$1000, 2, FALSE), \"False\")=\"True\"");
                 formatCond.Interior.ColorIndex = 15; // Gray to show it is locked
+                
+                // Add Dynamic Dropdowns natively to data columns based on Dictionary values
+                for (int c = 0; c < fields.Count; c++)
+                {
+                    if (columnUniqueValues[c].Count > 0 && !isReadOnlyCol[c])
+                    {
+                        dynamic colDataRange = ws.Range[ws.Cells[3, c + 2], ws.Cells[2 + maxR, c + 2]];
+                        string dictCol = GetExcelColumnName(c + 3);
+                        colDataRange.Validation.Delete();
+                        colDataRange.Validation.Add(Type: 3, AlertStyle: 1, Operator: 1, Formula1: $"=SmartBIM_Dictionary!${dictCol}$1:${dictCol}${columnUniqueValues[c].Count}");
+                        colDataRange.Validation.ShowError = false; // Soft-warn, allow custom typing
+                    }
+                }
             }
             catch { /* Regional formula separator edge cases */ }
 
@@ -398,6 +441,7 @@ namespace Smart_BIMs.Commands
                         }
                     }
 
+                    HashSet<string> appliedTypeParams = new HashSet<string>();
                     for (int r = 3; r <= rowCount; r++)
                     {
                         string idStr = values[r, 1]?.ToString();
@@ -413,6 +457,7 @@ namespace Smart_BIMs.Commands
                                     if (colMap.ContainsKey(c))
                                     {
                                         ScheduleField matchedField = colMap[c];
+                                        bool isTypeP = false;
                                         Parameter p = null;
                                         foreach (Parameter pI in el.Parameters) { if (pI.Id == matchedField.ParameterId) { p = pI; break; } }
 
@@ -423,15 +468,31 @@ namespace Smart_BIMs.Commands
                                             {
                                                 ElementType eType = doc.GetElement(typeId) as ElementType;
                                                 if (eType != null) {
-                                                    foreach (Parameter pI in eType.Parameters) { if (pI.Id == matchedField.ParameterId) { p = pI; break; } }
+                                                    foreach (Parameter pI in eType.Parameters) { if (pI.Id == matchedField.ParameterId) { p = pI; isTypeP = true; break; } }
                                                 }
                                             }
                                         }
 
                                         if (p != null && !p.IsReadOnly)
                                         {
-                                            string sVal = values[r, c]?.ToString();
-                                            try { p.Set(sVal); updated = true; } catch { }
+                                            string sVal = values[r, c]?.ToString() ?? "";
+                                            string curVal = p.AsValueString();
+                                            if (string.IsNullOrEmpty(curVal)) curVal = p.AsString();
+                                            if (string.IsNullOrEmpty(curVal)) {
+                                                if (p.StorageType == StorageType.Double) curVal = p.AsDouble().ToString("0.##");
+                                                else if (p.StorageType == StorageType.Integer) curVal = p.AsInteger().ToString();
+                                            }
+                                            
+                                            if ((curVal ?? "") != sVal)
+                                            {
+                                                if (isTypeP)
+                                                {
+                                                    string sig = $"{el.GetTypeId().IntegerValue}_{p.Id.IntegerValue}";
+                                                    if (appliedTypeParams.Contains(sig)) continue;
+                                                    appliedTypeParams.Add(sig);
+                                                }
+                                                try { p.Set(sVal); updated = true; } catch { }
+                                            }
                                         }
                                     }
                                 }
@@ -444,6 +505,17 @@ namespace Smart_BIMs.Commands
                 TaskDialog.Show("Advanced Sync Success", $"Successfully synced {updatedElements} element(s) exclusively for selected fields!");
             }
             System.Runtime.InteropServices.Marshal.ReleaseComObject(safeRange);
+        }
+        private string GetExcelColumnName(int columnIndex)
+        {
+            string columnName = "";
+            while (columnIndex > 0)
+            {
+                int modulo = (columnIndex - 1) % 26;
+                columnName = Convert.ToChar('A' + modulo) + columnName;
+                columnIndex = (columnIndex - modulo) / 26;
+            }
+            return columnName;
         }
     }
 }
