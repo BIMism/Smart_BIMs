@@ -143,7 +143,8 @@ namespace Smart_BIMs.Commands
                 for (int c = 0; c < fields.Count; c++)
                 {
                     ScheduleField field = fields[c];
-                    Parameter param = el.get_Parameter(field.ParameterId);
+                    Parameter param = null;
+                    foreach (Parameter pI in el.Parameters) { if (pI.Id == field.ParameterId) { param = pI; break; } }
                     
                     if (param == null)
                     {
@@ -151,7 +152,9 @@ namespace Smart_BIMs.Commands
                         if (typeId != ElementId.InvalidElementId)
                         {
                             ElementType eType = doc.GetElement(typeId) as ElementType;
-                            param = eType?.get_Parameter(field.ParameterId);
+                            if (eType != null) {
+                                foreach (Parameter pI in eType.Parameters) { if (pI.Id == field.ParameterId) { param = pI; break; } }
+                            }
                         }
                     }
 
@@ -243,7 +246,8 @@ namespace Smart_BIMs.Commands
                     if (collectedElements.Count > 0)
                     {
                         Element firstEl = collectedElements.First();
-                        Parameter p = firstEl.get_Parameter(sf.ParameterId);
+                        Parameter p = null;
+                        foreach (Parameter pI in firstEl.Parameters) { if (pI.Id == sf.ParameterId) { p = pI; break; } }
                         if (p != null) isRO = p.IsReadOnly;
                     }
                     paramReadOnly.Add(isRO);
@@ -400,7 +404,8 @@ namespace Smart_BIMs.Commands
                                     if (colMap.ContainsKey(c))
                                     {
                                         ScheduleField matchedField = colMap[c];
-                                        Parameter p = el.get_Parameter(matchedField.ParameterId);
+                                        Parameter p = null;
+                                        foreach (Parameter pI in el.Parameters) { if (pI.Id == matchedField.ParameterId) { p = pI; break; } }
 
                                         if (p == null)
                                         {
@@ -408,7 +413,9 @@ namespace Smart_BIMs.Commands
                                             if (typeId != ElementId.InvalidElementId)
                                             {
                                                 ElementType eType = doc.GetElement(typeId) as ElementType;
-                                                p = eType?.get_Parameter(matchedField.ParameterId);
+                                                if (eType != null) {
+                                                    foreach (Parameter pI in eType.Parameters) { if (pI.Id == matchedField.ParameterId) { p = pI; break; } }
+                                                }
                                             }
                                         }
 
