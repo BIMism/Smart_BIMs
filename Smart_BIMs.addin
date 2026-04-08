@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Smart_BIMs</Name>
+    <Assembly>Smart_BIMs\Smart_BIMs.dll</Assembly>
+    <AddInId>A9B4C836-CF82-4114-874D-8422A4E0B6E2</AddInId>
+    <FullClassName>Smart_BIMs.App</FullClassName>
+    <VendorId>SmartBIMs</VendorId>
+    <VendorDescription>Smart BIMs Plugin</VendorDescription>
+  </AddIn>
+</RevitAddIns>
